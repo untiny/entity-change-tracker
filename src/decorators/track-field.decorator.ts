@@ -9,8 +9,8 @@ export interface FieldMetadata<V = any> {
 
 export const TRACK_FIELD_KEY = 'entity-change-tracker:field'
 
-export function TrackField(name?: string): PropertyDecorator
 export function TrackField<V = any>(metadata?: FieldMetadata<V>): PropertyDecorator
+export function TrackField(name?: string): PropertyDecorator
 export function TrackField<V = any>(options?: FieldMetadata<V> | string): PropertyDecorator {
   let metadata: FieldMetadata<V> = {}
   if (typeof options === 'string') {

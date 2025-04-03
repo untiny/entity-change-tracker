@@ -223,15 +223,19 @@ export class EntityChangeTracker {
       return []
     }
     const entityMetadata = this.getMetadata(entity.constructor)
+    if (typeof entityMetadata?.format === 'function') {
+      return [entityMetadata.format(entity)]
+    }
     let items = Object.entries(entity)
     if (entityMetadata?.excludeUndefined) {
       items = items.filter(([key, _]) => this.getMetadata(entity, key))
     }
     return items.flatMap(([key, value]) => {
+      const name = this.getMetadata(entity, key)?.name ?? key
       if (isObject(value)) {
-        return this.mapEntityFields(value, fields.concat(key))
+        return this.mapEntityFields(value, fields.concat(name))
       }
-      return `${fields.concat(key).join('.')}: ${value}`
+      return `${fields.concat(name).join('.')}: ${value}`
     })
   }
 }
