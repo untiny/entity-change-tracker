@@ -73,7 +73,7 @@ export class EntityChangeTracker {
     return metadata
   }
 
-  static track<T extends object>(oldEntity: T | T[], newEntity: T | T[]): EntityChangeTrackerItem[] {
+  static track<T extends object>(oldEntity: T | T[], newEntity: T | T[], prefixPaths: TrackFieldInfo[] = []): EntityChangeTrackerItem[] {
     const changes: EntityChangeTrackerItem[] = []
     if (!oldEntity && !newEntity) {
       return changes
@@ -84,7 +84,7 @@ export class EntityChangeTracker {
       return changes
     }
 
-    this.processChanges(delta, changes, [], oldEntity ?? newEntity)
+    this.processChanges(delta, changes, prefixPaths, oldEntity ?? newEntity)
 
     return changes
   }
@@ -184,15 +184,15 @@ export class EntityChangeTracker {
       }
       const paths = change.paths.map(path => `[${path.name || path.key}]`).join('')
       if (change.op === 'add') {
-        return `编辑字段${paths}: [-- => ${value}]`
+        return `添加${paths}: [${value}]`
       }
       if (change.op === 'remove') {
-        return `编辑字段${paths}: [${value} => --]`
+        return `移除${paths}: [${value}]`
       }
       if (change.op === 'move') {
-        return `将${paths}[${value}]从${change.fromIndex}移动到${change.toIndex}]`
+        return `将${paths}的[${value}]从[${change.fromIndex}]移动到[${change.toIndex}]`
       }
-      return `编辑字段${paths}: [${oldValue} => ${value}]`
+      return `编辑${paths}: [${oldValue} => ${value}]`
     })
   }
 
