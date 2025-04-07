@@ -20,6 +20,6 @@ export function TrackField<V = any>(options?: FieldMetadata<V> | string): Proper
     metadata = options ?? {}
   }
   return (target: object, propertyKey: string | symbol) => {
-    Reflect.defineMetadata(TRACK_FIELD_KEY, metadata, target, propertyKey)
+    Reflect.defineMetadata(TRACK_FIELD_KEY, metadata, target.constructor, propertyKey)
   }
 }

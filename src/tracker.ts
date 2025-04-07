@@ -37,7 +37,7 @@ export class EntityChangeTracker {
     objectHash: (item: any, index?: number) => {
       let hash: string | undefined = index?.toString()
       if (isEntity(item)) {
-        const metadata: EntityMetadata = getMetadata(item.constructor) ?? {}
+        const metadata: EntityMetadata = getMetadata(item) ?? {}
         if (metadata?.objectHash) {
           hash = metadata.objectHash(item, index)
         }
@@ -47,7 +47,7 @@ export class EntityChangeTracker {
     propertyFilter: (name: string, context: DiffContext): boolean => {
       const entity = context.right || context.left
       if (isEntity(entity)) {
-        const entityMetadata = getMetadata(entity.constructor)
+        const entityMetadata = getMetadata(entity)
         if (entityMetadata?.excludeUndefined) {
           const fieldMetadata = getMetadata(entity, name)
           return !!fieldMetadata
@@ -58,20 +58,6 @@ export class EntityChangeTracker {
   })
 
   private static metadataMap = new Map<string, EntityMetadata | FieldMetadata>()
-
-  private static getMetadata(target: object): EntityMetadata | undefined
-  private static getMetadata(target: object, propertyKey: string | symbol): FieldMetadata | undefined
-  private static getMetadata(target: object, propertyKey?: string | symbol): EntityMetadata | FieldMetadata | undefined {
-    const cacheKey = propertyKey ? `${target.constructor.name}:${String(propertyKey)}` : target.constructor.name
-    if (this.metadataMap.has(cacheKey)) {
-      return this.metadataMap.get(cacheKey)
-    }
-    const metadata = getMetadata(target, propertyKey as string | symbol)
-    if (metadata) {
-      this.metadataMap.set(cacheKey, metadata)
-    }
-    return metadata
-  }
 
   static track<T extends object>(oldEntity: T | T[], newEntity: T | T[], prefixPaths: TrackFieldInfo[] = []): EntityChangeTrackerItem[] {
     const changes: EntityChangeTrackerItem[] = []
@@ -103,12 +89,17 @@ export class EntityChangeTracker {
       if (key === '_t' && value === 'a') {
         continue
       }
-      let metadata = this.getMetadata(originalEntity, key)
+      let metadata = getMetadata(originalEntity, key)
       const isDeletedOrMoved = key.startsWith('_') && !Number.isNaN(Number(key.slice(1)))
-      const currentKey = isDeletedOrMoved ? Number(key.slice(1)) : key
+      const currentKey = isDeletedOrMoved ? Number(key.slice(1)) : isArrayDelta ? Number(key) : key
       if (isArrayDelta && typeof currentKey === 'number') {
+        const entity = isArray(originalEntity) ? originalEntity?.[currentKey] : null
+        const entityMetadata = isEntity(entity) ? getMetadata(entity) : null
         // 数组时继承父级的格式化方法
-        metadata = { format: last(prefixPaths)?.format }
+        metadata = {
+          format: last(prefixPaths)?.format,
+          name: entityMetadata?.uniqueField?.(entity),
+        }
       }
       const paths = [...prefixPaths, { ...metadata, key: currentKey.toString() }]
       if (isArray(value)) {
@@ -151,16 +142,16 @@ export class EntityChangeTracker {
       let formatValue = field?.format
       const entity = change.value ?? change.oldValue
       if (isEntity(entity)) {
-        const entityMetadata = this.getMetadata(entity.constructor)
+        const entityMetadata = getMetadata(entity)
         formatValue = formatValue ?? entityMetadata?.format
         if (!formatValue) {
           let keys = Object.keys(entity)
           if (entityMetadata?.excludeUndefined) {
-            keys = keys.filter(key => this.getMetadata(entity, key))
+            keys = keys.filter(key => getMetadata(entity, key))
           }
           return this.formatChanges(
             keys.map((key) => {
-              const metadata = this.getMetadata(entity.constructor, key) ?? {}
+              const metadata = getMetadata(entity, key) ?? {}
               return {
                 ...change,
                 paths: [...change.paths, { ...metadata, key }],
@@ -222,16 +213,16 @@ export class EntityChangeTracker {
     if (!entity) {
       return []
     }
-    const entityMetadata = this.getMetadata(entity.constructor)
+    const entityMetadata = getMetadata(entity)
     if (typeof entityMetadata?.format === 'function') {
       return [entityMetadata.format(entity)]
     }
     let items = Object.entries(entity)
     if (entityMetadata?.excludeUndefined) {
-      items = items.filter(([key, _]) => this.getMetadata(entity, key))
+      items = items.filter(([key, _]) => getMetadata(entity, key))
     }
     return items.flatMap(([key, value]) => {
-      const name = this.getMetadata(entity, key)?.name ?? key
+      const name = getMetadata(entity, key)?.name ?? key
       if (isObject(value)) {
         return this.mapEntityFields(value, fields.concat(name))
       }

@@ -9,6 +9,8 @@ export interface EntityMetadata<T extends object = any> {
   objectHash?: (item: T, index?: number) => string | undefined
   /** 排除对比未定义字段 */
   excludeUndefined?: boolean
+  /** 实体唯一字段, 用于代替下标索引 */
+  uniqueField?: (entity: T) => string | undefined
 }
 
 export const TRACK_ENTITY_KEY = 'entity-change-tracker:entity'

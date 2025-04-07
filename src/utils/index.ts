@@ -4,13 +4,17 @@ import { TRACK_ENTITY_KEY, TRACK_FIELD_KEY } from '../decorators'
 export function getMetadata(target: object): EntityMetadata | undefined
 export function getMetadata(target: object, propertyKey: string | symbol): FieldMetadata | undefined
 export function getMetadata(target: object, propertyKey?: string | symbol): EntityMetadata | FieldMetadata | undefined {
-  if (!target) {
+  if (!target || Array.isArray(target)) {
     return undefined
   }
+  let metadata: EntityMetadata | FieldMetadata
   if (propertyKey) {
-    return Reflect.getMetadata(TRACK_FIELD_KEY, target, propertyKey)
+    metadata = Reflect.getMetadata(TRACK_FIELD_KEY, target.constructor, propertyKey)
   }
-  return Reflect.getMetadata(TRACK_ENTITY_KEY, target)
+  else {
+    metadata = Reflect.getMetadata(TRACK_ENTITY_KEY, target.constructor)
+  }
+  return metadata
 }
 
 export const isArray = Array.isArray
