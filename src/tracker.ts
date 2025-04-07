@@ -93,7 +93,7 @@ export class EntityChangeTracker {
       const isDeletedOrMoved = key.startsWith('_') && !Number.isNaN(Number(key.slice(1)))
       const currentKey = isDeletedOrMoved ? Number(key.slice(1)) : isArrayDelta ? Number(key) : key
       if (isArrayDelta && typeof currentKey === 'number') {
-        const entity = isArray(originalEntity) ? originalEntity?.[currentKey] : null
+        const entity = isArray(originalEntity) && !isDeletedOrMoved ? originalEntity?.[currentKey] : null
         const entityMetadata = isEntity(entity) ? getMetadata(entity) : null
         // 数组时继承父级的格式化方法
         metadata = {
